@@ -12,3 +12,14 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Comparison {
+  id        Int      @id @default(autoincrement())
+  item1     String
+  item2     String
+  response  Boolean  // true for "yes", false for "no"
+  timestamp DateTime @default(now())
+  fingerprint String
+
+  @@index([item1, item2])
+}
