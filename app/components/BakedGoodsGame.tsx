@@ -1,16 +1,15 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const GraphVisualization = ({ comparisonStats, items }) => {
   const [nodePositions, setNodePositions] = useState({});
 
   useEffect(() => {
     // Calculate node positions in a circle
-    const radius = 180; // Increased radius to accommodate more items
+    const radius = 180;
     const center = { x: 250, y: 250 };
     const positions = {};
 
@@ -25,14 +24,12 @@ const GraphVisualization = ({ comparisonStats, items }) => {
     setNodePositions(positions);
   }, [items]);
 
-  // Calculate net yes responses (yes - no) for a single direction
   const getNetYesResponses = (item1, item2) => {
     const key = `${item1}-${item2}`;
     const stats = comparisonStats[key] || { yes: 0, no: 0 };
     return stats.yes - stats.no;
   };
 
-  // Get edges with positive net yes responses
   const getEdges = () => {
     const edges = [];
     items.forEach((item1) => {
@@ -41,7 +38,7 @@ const GraphVisualization = ({ comparisonStats, items }) => {
           const netYes = getNetYesResponses(item1, item2);
           if (netYes > 0) {
             edges.push({
-              source: item2, // Reversed: arrow points from parent to child
+              source: item2,
               target: item1,
               weight: netYes
             });
@@ -52,18 +49,12 @@ const GraphVisualization = ({ comparisonStats, items }) => {
     return edges;
   };
 
-  // Calculate arrow points for edge
   const getArrowPoints = (x1, y1, x2, y2, nodeRadius = 20) => {
-    // Calculate the angle of the line
     const angle = Math.atan2(y2 - y1, x2 - x1);
-
-    // Calculate the end point, adjusted for node radius
     const endX = x2 - (nodeRadius * Math.cos(angle));
     const endY = y2 - (nodeRadius * Math.sin(angle));
-
-    // Calculate arrow head points
     const arrowLength = 10;
-    const arrowAngle = Math.PI / 6; // 30 degrees
+    const arrowAngle = Math.PI / 6;
 
     const point1X = endX - arrowLength * Math.cos(angle - arrowAngle);
     const point1Y = endY - arrowLength * Math.sin(angle - arrowAngle);
@@ -97,13 +88,10 @@ const GraphVisualization = ({ comparisonStats, items }) => {
         </marker>
       </defs>
 
-      {/* Draw edges */}
       {getEdges().map((edge, i) => {
         const sourcePos = nodePositions[edge.source];
         const targetPos = nodePositions[edge.target];
         const strokeWidth = Math.min(edge.weight + 1, 5);
-
-        // Calculate arrow points
         const arrow = getArrowPoints(
           sourcePos.x,
           sourcePos.y,
@@ -127,7 +115,6 @@ const GraphVisualization = ({ comparisonStats, items }) => {
         );
       })}
 
-      {/* Draw nodes */}
       {items.map((item) => {
         const pos = nodePositions[item];
         return (
@@ -156,6 +143,12 @@ const GraphVisualization = ({ comparisonStats, items }) => {
   );
 };
 
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+  </div>
+);
+
 const BakedGoodsGame = () => {
   const bakedGoods = [
     'bread',
@@ -177,16 +170,14 @@ const BakedGoodsGame = () => {
     'pita'
   ];
 
-  // State management
   const [item1, setItem1] = useState('');
   const [item2, setItem2] = useState('');
   const [showNext, setShowNext] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [comparisonStats, setComparisonStats] = useState({});
-
-  const getComparisonKey = (item1, item2) => {
-    return `${item1}-${item2}`;
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getRandomQuestion = () => {
     let first, second;
@@ -200,26 +191,69 @@ const BakedGoodsGame = () => {
     setShowNext(false);
   };
 
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/comparisons');
+      if (!response.ok) throw new Error('Failed to fetch comparison data');
+      const data = await response.json();
+      setComparisonStats(data);
+    } catch (err) {
+      setError('Failed to load comparison data. Please try again later.');
+      console.error('Error fetching stats:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
+    fetchStats();
     getRandomQuestion();
   }, []);
 
-  const handleAnswer = (answer) => {
-    const key = getComparisonKey(item1, item2);
-    setComparisonStats(prev => ({
-      ...prev,
-      [key]: {
-        yes: (prev[key]?.yes || 0) + (answer === 'yes' ? 1 : 0),
-        no: (prev[key]?.no || 0) + (answer === 'no' ? 1 : 0)
-      }
-    }));
-    setShowNext(true);
+  const handleAnswer = async (answer) => {
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/comparisons', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          item1,
+          item2,
+          response: answer === 'yes',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit answer');
+
+      // Fetch updated stats after successful submission
+      await fetchStats();
+      setShowNext(true);
+    } catch (err) {
+      setError('Failed to submit answer. Please try again.');
+      console.error('Error submitting answer:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getCurrentStats = () => {
-    const key = getComparisonKey(item1, item2);
+    const key = `${item1}-${item2}`;
     return comparisonStats[key] || { yes: 0, no: 0 };
   };
+
+  if (isLoading) {
+    return (
+      <Card className="w-full max-w-xl mx-auto p-6">
+        <CardContent>
+          <LoadingSpinner />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (showStats) {
     return (
@@ -268,6 +302,13 @@ const BakedGoodsGame = () => {
                 View Stats Graph
               </Button>
             </div>
+
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <p className="text-xl mb-6">
               Is a <span className="font-bold text-blue-600">{item1}</span> a type of{' '}
               <span className="font-bold text-green-600">{item2}</span>?
@@ -277,14 +318,14 @@ const BakedGoodsGame = () => {
           <div className="flex justify-center gap-4">
             <Button
               onClick={() => handleAnswer('yes')}
-              disabled={showNext}
+              disabled={showNext || isSubmitting}
               className="bg-green-500 hover:bg-green-600"
             >
               Yes
             </Button>
             <Button
               onClick={() => handleAnswer('no')}
-              disabled={showNext}
+              disabled={showNext || isSubmitting}
               className="bg-red-500 hover:bg-red-600"
             >
               No
