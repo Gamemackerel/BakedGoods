@@ -2,6 +2,11 @@ FROM node:20-slim
 
 WORKDIR /app
 
+# Install OpenSSL and other required dependencies
+RUN apt-get update && \
+    apt-get install -y openssl libssl-dev ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY package*.json ./
 RUN npm install

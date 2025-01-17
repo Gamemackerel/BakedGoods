@@ -4,48 +4,63 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // For debugging, let's first return a mock response
-    return NextResponse.json({
-      'bread-pastry': { yes: 5, no: 2 },
-      'cookie-pastry': { yes: 8, no: 1 }
-    });
-
-    // Once we confirm the route works, we'll uncomment this:
-    // const comparisons = await prisma.groupedComparisons();
-    // return NextResponse.json(comparisons);
+    console.log('Fetching comparisons...');
+    const comparisons = await prisma.comparison.groupedComparisons();
+    return NextResponse.json(comparisons || {}); // Ensure we always return an object
   } catch (error) {
-    console.error('Error fetching comparisons:', error);
-    return NextResponse.json(
-      { error: 'Error fetching comparisons' },
-      { status: 500 }
-    );
+    if (error instanceof Error) {
+      console.error('Error creating comparison:', error.stack);
+    } else {
+      console.error('Error creating comparison:', error);
+    }
+    return NextResponse.json({
+      error: 'Error fetching comparisons',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
+// Simpler version without zod
 export async function POST(request: Request) {
   try {
-    const { item1, item2, response } = await request.json();
+    const body = await request.json();
+    console.log('Received comparison:', body);
 
-    console.log('Received comparison:', { item1, item2, response });
+    // Basic validation
+    if (!body.item1 || !body.item2 || body.response === undefined) {
+      throw new Error('Missing required fields');
+    }
 
-    // For debugging, let's first return a mock response
-    return NextResponse.json({ success: true });
+    // Create the comparison
+    const comparison = await prisma.comparison.create({
+      data: {
+        item1: body.item1,
+        item2: body.item2,
+        response: body.response === true || body.response === 'yes',
+        timestamp: new Date(),
+        fingerprint: Date.now().toString(36) + Math.random().toString(36).substring(2)
+      },
+    });
 
-    // Once we confirm the route works, we'll uncomment this:
-    // const comparison = await prisma.comparison.create({
-    //   data: {
-    //     item1,
-    //     item2,
-    //     response: response === 'yes',
-    //     timestamp: new Date(),
-    //   },
-    // });
-    // return NextResponse.json(comparison);
+    if (!comparison) {
+      throw new Error('Failed to create comparison');
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: comparison
+    });
+
   } catch (error) {
-    console.error('Error creating comparison:', error);
-    return NextResponse.json(
-      { error: 'Error creating comparison' },
-      { status: 500 }
-    );
+    if (error instanceof Error) {
+      console.error('Error creating comparison:', error.stack);
+    } else {
+      console.error('Error creating comparison:', error);
+    }
+    return NextResponse.json({
+      success: false,
+      error: 'Error creating comparison',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

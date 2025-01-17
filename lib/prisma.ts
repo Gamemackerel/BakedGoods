@@ -1,47 +1,64 @@
 // lib/prisma.ts
 import { PrismaClient } from '@prisma/client';
 
+declare global {
+  var prisma: ExtendedPrismaClient | undefined;
+}
+
+type ExtendedPrismaClient = PrismaClient & {
+  comparison: {
+    groupedComparisons(): Promise<Record<string, { yes: number; no: number }>>;
+  };
+};
+
 const prismaClientSingleton = () => {
-  return new PrismaClient().$extends({
+  const prisma = new PrismaClient().$extends({
     model: {
       comparison: {
         async groupedComparisons() {
-          const results = await prisma.comparison.groupBy({
-            by: ['item1', 'item2', 'response'],
-            _count: true,
-          });
+          try {
+            const results = await prisma.comparison.groupBy({
+              by: ['item1', 'item2', 'response'],
+              _count: {
+                _all: true
+              }
+            });
 
-          // Transform the results into the format expected by the frontend
-          const comparisons = {};
+            // Initialize with empty object even if no results
+            const comparisons: Record<string, { yes: number; no: number }> = {};
 
-          results.forEach((result) => {
-            const key = `${result.item1}-${result.item2}`;
-            if (!comparisons[key]) {
-              comparisons[key] = { yes: 0, no: 0 };
+            // Process results if we have any
+            if (results && results.length > 0) {
+              results.forEach((result) => {
+                const key = `${result.item1}-${result.item2}`;
+                if (!comparisons[key]) {
+                  comparisons[key] = { yes: 0, no: 0 };
+                }
+
+                if (result.response) {
+                  comparisons[key].yes = result._count._all;
+                } else {
+                  comparisons[key].no = result._count._all;
+                }
+              });
             }
 
-            if (result.response) {
-              comparisons[key].yes = result._count;
-            } else {
-              comparisons[key].no = result._count;
-            }
-          });
-
-          return comparisons;
+            return comparisons;
+          } catch (error) {
+            console.error('Error in groupedComparisons:', JSON.stringify(error));
+            // Return empty object instead of null on error
+            return {};
+          }
         },
       },
     },
   });
+
+  return prisma as ExtendedPrismaClient;
 };
 
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+const prisma = globalThis.prisma ?? prismaClientSingleton();
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined;
-};
-
-const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
 
 export default prisma;

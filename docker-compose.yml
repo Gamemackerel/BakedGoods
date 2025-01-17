@@ -35,9 +35,5 @@ services:
         condition: service_healthy
     command: npm run dev
 
-  # Since we're using Next.js App Router with API routes,
-  # we actually don't need a separate backend service!
-  # The API routes will be served from the frontend service.
-
 volumes:
   db-data:

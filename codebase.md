@@ -5,6 +5,20 @@ node_modules/
 package-lock.json
 ```
 
+# .dockerignore
+
+```
+.git
+.gitignore
+node_modules
+.next
+.env*
+.dockerignore
+Dockerfile*
+docker-compose*
+README.md
+```
+
 # .gitignore
 
 ```
@@ -52,6 +66,53 @@ next-env.d.ts
 
 ```
 
+# app/api/comparisons/route.ts
+
+```ts
+// app/api/comparisons/route.ts
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+
+export async function GET() {
+  try {
+    console.log('Fetching comparisons...');
+    // Once we confirm the route works, we'll uncomment this:
+    const comparisons = await prisma.groupedComparisons();
+    return NextResponse.json(comparisons);
+  } catch (error) {
+    console.error('Error fetching comparisons:', error);
+    return NextResponse.json(
+      { error: 'Error fetching comparisons' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { item1, item2, response } = await request.json();
+
+    console.log('Received comparison:', { item1, item2, response });
+
+    const comparison = await prisma.comparison.create({
+      data: {
+        item1,
+        item2,
+        response: response === 'yes',
+        timestamp: new Date(),
+      },
+    });
+    return NextResponse.json(comparison);
+  } catch (error) {
+    console.error('Error creating comparison:', error);
+    return NextResponse.json(
+      { error: 'Error creating comparison' },
+      { status: 500 }
+    );
+  }
+}
+```
+
 # app/components/BakedGoodsGame.tsx
 
 ```tsx
@@ -61,13 +122,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const GraphVisualization = ({ comparisonStats, items }) => {
   const [nodePositions, setNodePositions] = useState({});
 
   useEffect(() => {
     // Calculate node positions in a circle
-    const radius = 180; // Increased radius to accommodate more items
+    const radius = 180;
     const center = { x: 250, y: 250 };
     const positions = {};
 
@@ -82,14 +144,12 @@ const GraphVisualization = ({ comparisonStats, items }) => {
     setNodePositions(positions);
   }, [items]);
 
-  // Calculate net yes responses (yes - no) for a single direction
   const getNetYesResponses = (item1, item2) => {
     const key = `${item1}-${item2}`;
     const stats = comparisonStats[key] || { yes: 0, no: 0 };
     return stats.yes - stats.no;
   };
 
-  // Get edges with positive net yes responses
   const getEdges = () => {
     const edges = [];
     items.forEach((item1) => {
@@ -98,7 +158,7 @@ const GraphVisualization = ({ comparisonStats, items }) => {
           const netYes = getNetYesResponses(item1, item2);
           if (netYes > 0) {
             edges.push({
-              source: item2, // Reversed: arrow points from parent to child
+              source: item2,
               target: item1,
               weight: netYes
             });
@@ -109,18 +169,12 @@ const GraphVisualization = ({ comparisonStats, items }) => {
     return edges;
   };
 
-  // Calculate arrow points for edge
   const getArrowPoints = (x1, y1, x2, y2, nodeRadius = 20) => {
-    // Calculate the angle of the line
     const angle = Math.atan2(y2 - y1, x2 - x1);
-
-    // Calculate the end point, adjusted for node radius
     const endX = x2 - (nodeRadius * Math.cos(angle));
     const endY = y2 - (nodeRadius * Math.sin(angle));
-
-    // Calculate arrow head points
     const arrowLength = 10;
-    const arrowAngle = Math.PI / 6; // 30 degrees
+    const arrowAngle = Math.PI / 6;
 
     const point1X = endX - arrowLength * Math.cos(angle - arrowAngle);
     const point1Y = endY - arrowLength * Math.sin(angle - arrowAngle);
@@ -154,13 +208,10 @@ const GraphVisualization = ({ comparisonStats, items }) => {
         </marker>
       </defs>
 
-      {/* Draw edges */}
       {getEdges().map((edge, i) => {
         const sourcePos = nodePositions[edge.source];
         const targetPos = nodePositions[edge.target];
         const strokeWidth = Math.min(edge.weight + 1, 5);
-
-        // Calculate arrow points
         const arrow = getArrowPoints(
           sourcePos.x,
           sourcePos.y,
@@ -184,7 +235,6 @@ const GraphVisualization = ({ comparisonStats, items }) => {
         );
       })}
 
-      {/* Draw nodes */}
       {items.map((item) => {
         const pos = nodePositions[item];
         return (
@@ -213,6 +263,12 @@ const GraphVisualization = ({ comparisonStats, items }) => {
   );
 };
 
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+  </div>
+);
+
 const BakedGoodsGame = () => {
   const bakedGoods = [
     'bread',
@@ -234,16 +290,14 @@ const BakedGoodsGame = () => {
     'pita'
   ];
 
-  // State management
   const [item1, setItem1] = useState('');
   const [item2, setItem2] = useState('');
   const [showNext, setShowNext] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [comparisonStats, setComparisonStats] = useState({});
-
-  const getComparisonKey = (item1, item2) => {
-    return `${item1}-${item2}`;
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getRandomQuestion = () => {
     let first, second;
@@ -257,26 +311,69 @@ const BakedGoodsGame = () => {
     setShowNext(false);
   };
 
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/comparisons');
+      if (!response.ok) throw new Error('Failed to fetch comparison data');
+      const data = await response.json();
+      setComparisonStats(data);
+    } catch (err) {
+      setError('Failed to load comparison data. Please try again later.');
+      console.error('Error fetching stats:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
+    fetchStats();
     getRandomQuestion();
   }, []);
 
-  const handleAnswer = (answer) => {
-    const key = getComparisonKey(item1, item2);
-    setComparisonStats(prev => ({
-      ...prev,
-      [key]: {
-        yes: (prev[key]?.yes || 0) + (answer === 'yes' ? 1 : 0),
-        no: (prev[key]?.no || 0) + (answer === 'no' ? 1 : 0)
-      }
-    }));
-    setShowNext(true);
+  const handleAnswer = async (answer) => {
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/comparisons', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          item1,
+          item2,
+          response: answer === 'yes',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit answer');
+
+      // Fetch updated stats after successful submission
+      await fetchStats();
+      setShowNext(true);
+    } catch (err) {
+      setError('Failed to submit answer. Please try again.');
+      console.error('Error submitting answer:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getCurrentStats = () => {
-    const key = getComparisonKey(item1, item2);
+    const key = `${item1}-${item2}`;
     return comparisonStats[key] || { yes: 0, no: 0 };
   };
+
+  if (isLoading) {
+    return (
+      <Card className="w-full max-w-xl mx-auto p-6">
+        <CardContent>
+          <LoadingSpinner />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (showStats) {
     return (
@@ -325,6 +422,13 @@ const BakedGoodsGame = () => {
                 View Stats Graph
               </Button>
             </div>
+
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <p className="text-xl mb-6">
               Is a <span className="font-bold text-blue-600">{item1}</span> a type of{' '}
               <span className="font-bold text-green-600">{item2}</span>?
@@ -334,14 +438,14 @@ const BakedGoodsGame = () => {
           <div className="flex justify-center gap-4">
             <Button
               onClick={() => handleAnswer('yes')}
-              disabled={showNext}
+              disabled={showNext || isSubmitting}
               className="bg-green-500 hover:bg-green-600"
             >
               Yes
             </Button>
             <Button
               onClick={() => handleAnswer('no')}
-              disabled={showNext}
+              disabled={showNext || isSubmitting}
               className="bg-red-500 hover:bg-red-600"
             >
               No
@@ -547,6 +651,71 @@ export default function Home() {
 }
 ```
 
+# components/ui/alert.tsx
+
+```tsx
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const alertVariants = cva(
+  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  {
+    variants: {
+      variant: {
+        default: "bg-background text-foreground",
+        destructive:
+          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+const Alert = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+>(({ className, variant, ...props }, ref) => (
+  <div
+    ref={ref}
+    role="alert"
+    className={cn(alertVariants({ variant }), className)}
+    {...props}
+  />
+))
+Alert.displayName = "Alert"
+
+const AlertTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h5
+    ref={ref}
+    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    {...props}
+  />
+))
+AlertTitle.displayName = "AlertTitle"
+
+const AlertDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    {...props}
+  />
+))
+AlertDescription.displayName = "AlertDescription"
+
+export { Alert, AlertTitle, AlertDescription }
+
+```
+
 # components/ui/button.tsx
 
 ```tsx
@@ -694,6 +863,79 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 
 ```
 
+# docker-compose.yml
+
+```yml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14
+    restart: always
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: baked_goods_db
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/baked_goods_db
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run dev
+
+  # Since we're using Next.js App Router with API routes,
+  # we actually don't need a separate backend service!
+  # The API routes will be served from the frontend service.
+
+volumes:
+  db-data:
+```
+
+# Dockerfile
+
+```
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Prisma setup
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy the rest of the code
+COPY . .
+
+# Expose the port
+EXPOSE 3000
+
+# Start in development mode
+CMD ["npm", "run", "dev"]
+```
+
 # eslint.config.mjs
 
 ```mjs
@@ -714,6 +956,58 @@ const eslintConfig = [
 
 export default eslintConfig;
 
+```
+
+# lib/prisma.ts
+
+```ts
+// lib/prisma.ts
+import { PrismaClient } from '@prisma/client';
+
+const prismaClientSingleton = () => {
+  return new PrismaClient().$extends({
+    model: {
+      comparison: {
+        async groupedComparisons() {
+          const results = await prisma.comparison.groupBy({
+            by: ['item1', 'item2', 'response'],
+            _count: true,
+          });
+
+          // Transform the results into the format expected by the frontend
+          const comparisons = {};
+
+          results.forEach((result) => {
+            const key = `${result.item1}-${result.item2}`;
+            if (!comparisons[key]) {
+              comparisons[key] = { yes: 0, no: 0 };
+            }
+
+            if (result.response) {
+              comparisons[key].yes = result._count;
+            } else {
+              comparisons[key].no = result._count;
+            }
+          });
+
+          return comparisons;
+        },
+      },
+    },
+  });
+};
+
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClientSingleton | undefined;
+};
+
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+export default prisma;
 ```
 
 # lib/utils.ts
@@ -766,6 +1060,7 @@ export default nextConfig;
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^6.1.0",
     "@radix-ui/react-slot": "^1.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -785,6 +1080,7 @@ export default nextConfig;
     "eslint": "^9",
     "eslint-config-next": "15.1.3",
     "postcss": "^8",
+    "prisma": "^6.1.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
@@ -803,6 +1099,37 @@ const config = {
 };
 
 export default config;
+
+```
+
+# prisma/schema.prisma
+
+```prisma
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Comparison {
+  id        Int      @id @default(autoincrement())
+  item1     String
+  item2     String
+  response  Boolean  // true for "yes", false for "no"
+  timestamp DateTime @default(now())
+  fingerprint String
+
+  @@index([item1, item2])
+}
 
 ```
 
@@ -829,6 +1156,8 @@ This is a file of the type: SVG Image
 # README.md
 
 ```md
+# BakedGoods
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -851,20 +1180,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
 
 ```
 
