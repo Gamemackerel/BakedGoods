@@ -191,8 +191,20 @@ const ForceGraph = ({ comparisonStats, items }) => {
           markerWidth="6"
           markerHeight="6"
           orient="auto-start-reverse"
+          className="transition-opacity duration-200"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#666"/>
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={hoveredNode ? '#ddd' : '#666'} />
+        </marker>
+        <marker
+          id="arrowhead-active"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#000"/>
         </marker>
       </defs>
 
@@ -246,9 +258,22 @@ const ForceGraph = ({ comparisonStats, items }) => {
                 fill="none"
                 stroke={getStrokeColor(link)}
                 strokeWidth={getStrokeWidth(link)}
-                markerEnd="url(#arrowhead)"
+                markerEnd={`url(#${(hoveredNode && (link.source === hoveredNode || link.target === hoveredNode)) ? 'arrowhead-active' : 'arrowhead'})`}
                 opacity={0.6}
               />
+              {hoveredNode && (link.source === hoveredNode || link.target === hoveredNode) && (
+                <text
+                  x={controlX}
+                  y={controlY}
+                  dy={curveDirection * -5}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill="#3b82f6"  // Tailwind blue-500
+                  className="select-none pointer-events-none"
+                >
+                  {link.value}
+                </text>
+              )}
             </g>
           );
         })}
