@@ -13,46 +13,140 @@ const LoadingSpinner = () => (
   </div>
 );
 
+const ComparisonQuestions = ({
+  item1,
+  item2,
+  onAnswer,
+  stats,
+  showResults,
+  isSubmitting
+}) => {
+  const [answers, setAnswers] = useState({ forward: null, reverse: null });
+
+  useEffect(() => {
+    setAnswers({ forward: null, reverse: null });
+  }, [item1, item2]);
+
+  const handleAnswer = (direction, answer) => {
+    const newAnswers = { ...answers, [direction]: answer };
+    setAnswers(newAnswers);
+
+    if (newAnswers.forward !== null && newAnswers.reverse !== null) {
+      onAnswer(newAnswers);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Forward question */}
+        <div className="space-y-4 p-6 border rounded-lg">
+          <p className="text-lg text-center">
+            Is a <span className="font-bold text-blue-600">{item1}</span> a type of{' '}
+            <span className="font-bold text-green-600">{item2}</span>?
+          </p>
+
+          <div className="flex justify-center gap-4">
+            <Button
+              onClick={() => handleAnswer('forward', true)}
+              disabled={answers.forward !== null || isSubmitting}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              Yes
+            </Button>
+            <Button
+              onClick={() => handleAnswer('forward', false)}
+              disabled={answers.forward !== null || isSubmitting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              No
+            </Button>
+          </div>
+
+          {showResults && (
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <p className="font-medium">Yes</p>
+                  <p className="text-xl text-green-600">{stats.forward?.yes || 0}</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-medium">No</p>
+                  <p className="text-xl text-red-600">{stats.forward?.no || 0}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Reverse question */}
+        <div className="space-y-4 p-6 border rounded-lg">
+          <p className="text-lg text-center">
+            Is a <span className="font-bold text-green-600">{item2}</span> a type of{' '}
+            <span className="font-bold text-blue-600">{item1}</span>?
+          </p>
+
+          <div className="flex justify-center gap-4">
+            <Button
+              onClick={() => handleAnswer('reverse', true)}
+              disabled={answers.reverse !== null || isSubmitting}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              Yes
+            </Button>
+            <Button
+              onClick={() => handleAnswer('reverse', false)}
+              disabled={answers.reverse !== null || isSubmitting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              No
+            </Button>
+          </div>
+
+          {showResults && (
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <p className="font-medium">Yes</p>
+                  <p className="text-xl text-green-600">{stats.reverse?.yes || 0}</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-medium">No</p>
+                  <p className="text-xl text-red-600">{stats.reverse?.no || 0}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BakedGoodsGame = () => {
   const bakedGoods = [
-    'bread',
-    'cake',
-    'cookie',
-    'pastry',
-    'pie',
-    'roll',
-    'muffin',
-    'donut',
-    'brownie',
-    'biscuit',
-    'scone',
-    'cracker',
-    'tortilla',
-    'crepe',
-    'pancake',
-    'waffle',
-    'pita'
+    'bread', 'cake', 'cookie', 'pastry', 'pie', 'roll', 'muffin',
+    'donut', 'brownie', 'biscuit', 'scone', 'cracker', 'tortilla',
+    'crepe', 'pancake', 'waffle', 'pita'
   ];
 
-  const [item1, setItem1] = useState('');
-  const [item2, setItem2] = useState('');
-  const [showNext, setShowNext] = useState(false);
+  const [items, setItems] = useState({ item1: '', item2: '' });
+  const [showResults, setShowResults] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [comparisonStats, setComparisonStats] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getRandomQuestion = () => {
+  const getRandomPair = () => {
     let first, second;
     do {
       first = bakedGoods[Math.floor(Math.random() * bakedGoods.length)];
       second = bakedGoods[Math.floor(Math.random() * bakedGoods.length)];
     } while (first === second);
 
-    setItem1(first);
-    setItem2(second);
-    setShowNext(false);
+    setItems({ item1: first, item2: second });
+    setShowResults(false);
   };
 
   const fetchStats = async () => {
@@ -71,47 +165,59 @@ const BakedGoodsGame = () => {
 
   useEffect(() => {
     fetchStats();
-    getRandomQuestion();
+    getRandomPair();
   }, []);
 
-  const handleAnswer = async (answer) => {
+  const handleAnswers = async ({ forward, reverse }) => {
     setIsSubmitting(true);
     setError('');
 
     try {
-      const response = await fetch('/api/comparisons', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          item1,
-          item2,
-          response: answer === 'yes',
+      // Submit both comparisons
+      const responses = await Promise.all([
+        fetch('/api/comparisons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item1: items.item1,
+            item2: items.item2,
+            response: forward,
+          }),
         }),
-      });
+        fetch('/api/comparisons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item1: items.item2,
+            item2: items.item1,
+            response: reverse,
+          }),
+        }),
+      ]);
 
-      if (!response.ok) throw new Error('Failed to submit answer');
+      if (!responses.every(r => r.ok)) {
+        throw new Error('Failed to submit one or more answers');
+      }
 
-      // Fetch updated stats after successful submission
       await fetchStats();
-      setShowNext(true);
+      setShowResults(true);
     } catch (err) {
-      setError('Failed to submit answer. Please try again.');
-      console.error('Error submitting answer:', err);
+      setError('Failed to submit answers. Please try again.');
+      console.error('Error submitting answers:', err);
     } finally {
       setIsSubmitting(false);
+
     }
   };
 
-  const getCurrentStats = () => {
-    const key = `${item1}-${item2}`;
-    return comparisonStats[key] || { yes: 0, no: 0 };
-  };
+  const getCurrentStats = () => ({
+    forward: comparisonStats[`${items.item1}-${items.item2}`] || { yes: 0, no: 0 },
+    reverse: comparisonStats[`${items.item2}-${items.item1}`] || { yes: 0, no: 0 },
+  });
 
   if (isLoading) {
     return (
-      <Card className="w-full max-w-xl mx-auto p-6">
+      <Card className="w-full max-w-2xl mx-auto p-6">
         <CardContent>
           <LoadingSpinner />
         </CardContent>
@@ -138,8 +244,7 @@ const BakedGoodsGame = () => {
 
             <p className="text-gray-600">
               This graph shows hierarchical relationships between baked goods based on user answers.
-              Arrows point from parent categories to their subtypes (e.g., if users say &quot;a cookie is a type of pastry&quot;,
-              an arrow points from pastry → cookie). Thicker arrows indicate stronger relationships.
+              Arrows point from parent categories to their subtypes.
             </p>
 
             <StatsGraph
@@ -153,7 +258,7 @@ const BakedGoodsGame = () => {
   }
 
   return (
-    <Card className="w-full max-w-xl mx-auto p-6">
+    <Card className="w-full max-w-2xl mx-auto p-6">
       <CardContent>
         <div className="space-y-6">
           <div className="text-center">
@@ -173,57 +278,26 @@ const BakedGoodsGame = () => {
               </Alert>
             )}
 
-            <p className="text-xl mb-6">
-              Is a <span className="font-bold text-blue-600">{item1}</span> a type of{' '}
-              <span className="font-bold text-green-600">{item2}</span>?
-            </p>
-          </div>
+            <ComparisonQuestions
+              item1={items.item1}
+              item2={items.item2}
+              onAnswer={handleAnswers}
+              stats={getCurrentStats()}
+              showResults={showResults}
+              isSubmitting={isSubmitting}
+            />
 
-          <div className="flex justify-center gap-4">
-            <Button
-              onClick={() => handleAnswer('yes')}
-              disabled={showNext || isSubmitting}
-              className="bg-green-500 hover:bg-green-600"
-            >
-              Yes
-            </Button>
-            <Button
-              onClick={() => handleAnswer('no')}
-              disabled={showNext || isSubmitting}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              No
-            </Button>
-          </div>
-
-          {showNext && (
-            <div className="space-y-4">
-              <div className="mt-6 p-4 bg-gray-100 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">
-                  How others answered &quot;{item1} - {item2}&quot;:
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="font-medium">Yes Answers</p>
-                    <p className="text-2xl text-green-600">{getCurrentStats().yes}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium">No Answers</p>
-                    <p className="text-2xl text-red-600">{getCurrentStats().no}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-center">
+            {showResults && (
+              <div className="text-center mt-6">
                 <Button
-                  onClick={getRandomQuestion}
+                  onClick={getRandomPair}
                   className="mt-4 bg-blue-500 hover:bg-blue-600"
                 >
-                  Next Question
+                  Next Pair
                 </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
