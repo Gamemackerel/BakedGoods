@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import StatsGraph from './StatsGraph';
+import ForceGraph from './ForceGraph';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -247,7 +247,7 @@ const BakedGoodsGame = () => {
               Arrows point from parent categories to their subtypes.
             </p>
 
-            <StatsGraph
+            <ForceGraph
               comparisonStats={comparisonStats}
               items={bakedGoods}
             />

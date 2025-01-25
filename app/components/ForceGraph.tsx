@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const StatsGraph = ({ comparisonStats, items }) => {
+const ForceGraph = ({ comparisonStats, items }) => {
   const svgRef = useRef(null);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [draggedNode, setDraggedNode] = useState(null);
@@ -154,9 +154,22 @@ const StatsGraph = ({ comparisonStats, items }) => {
   };
 
   const getStrokeWidth = (link) => {
-    const baseWidth = Math.min(link.value, 5);
+    // Calculate z-score for this link's value compared to all links
+    const values = links.map(l => l.value);
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const stdDev = Math.sqrt(
+      values.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / values.length
+    );
+
+    // Convert z-score to a width between 1 and 6
+    const zScore = (link.value - mean) / stdDev;
+    const baseWidth = Math.max(1, Math.min(6, 3 + zScore));
+
+    // Adjust width on hover
     if (!hoveredNode) return baseWidth;
-    return (link.source === hoveredNode || link.target === hoveredNode) ? baseWidth + 1 : baseWidth - 1;
+    return (link.source === hoveredNode || link.target === hoveredNode)
+      ? baseWidth + 0.5
+      : baseWidth - 0.5;
   };
 
   const getNodeOpacity = (node) => {
@@ -173,11 +186,11 @@ const StatsGraph = ({ comparisonStats, items }) => {
         <marker
           id="arrowhead"
           viewBox="0 0 10 10"
-          refX="25"
+          refX="8"
           refY="5"
           markerWidth="6"
           markerHeight="6"
-          orient="auto"
+          orient="auto-start-reverse"
         >
           <path d="M 0 0 L 10 5 L 0 10 z" fill="#666"/>
         </marker>
@@ -191,23 +204,46 @@ const StatsGraph = ({ comparisonStats, items }) => {
 
           const dx = target.x - source.x;
           const dy = target.y - source.y;
-          const angle = Math.atan2(dy, dx);
+          const dr = Math.sqrt(dx * dx + dy * dy);
+
+          // Check if there's a reverse link and if this is the second link
+          const reverseLink = links.find(l =>
+            l.source === link.target && l.target === link.source
+          );
+          const isSecondLink = reverseLink && link.source > link.target;
+
+          // Curve in opposite directions for bidirectional links
+          const curve = reverseLink ? (isSecondLink ? -dr * 0.2 : dr * 0.2) : 0;
 
           const sourceRadius = 30;
           const targetRadius = 30;
 
+          const angle = Math.atan2(dy, dx);
           const sourceX = source.x + sourceRadius * Math.cos(angle);
           const sourceY = source.y + sourceRadius * Math.sin(angle);
           const targetX = target.x - targetRadius * Math.cos(angle);
           const targetY = target.y - targetRadius * Math.sin(angle);
 
+          // Create curved path with adjusted control points for opposite curves
+          const midX = (sourceX + targetX) / 2;
+          const midY = (sourceY + targetY) / 2;
+
+          // Determine curve direction based on node IDs to ensure consistency
+          const curveDirection = link.source < link.target ? 1 : -1;
+          const perpX = -dy / dr * curve * curveDirection;
+          const perpY = dx / dr * curve * curveDirection;
+          const controlX = midX + perpX;
+          const controlY = midY + perpY;
+
+          const path = reverseLink
+            ? `M ${sourceX} ${sourceY} Q ${controlX} ${controlY} ${targetX} ${targetY}`
+            : `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
+
           return (
             <g key={i} className="link">
-              <line
-                x1={sourceX}
-                y1={sourceY}
-                x2={targetX}
-                y2={targetY}
+              <path
+                d={path}
+                fill="none"
                 stroke={getStrokeColor(link)}
                 strokeWidth={getStrokeWidth(link)}
                 markerEnd="url(#arrowhead)"
@@ -255,4 +291,4 @@ const StatsGraph = ({ comparisonStats, items }) => {
   );
 };
 
-export default StatsGraph;
+export default ForceGraph;
