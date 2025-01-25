@@ -1,8 +1,7 @@
-// lib/prisma.ts
 import { PrismaClient } from '@prisma/client';
 
 declare global {
-  var prisma: ExtendedPrismaClient | undefined;
+  let prisma: ExtendedPrismaClient | undefined;
 }
 
 type ExtendedPrismaClient = PrismaClient & {
