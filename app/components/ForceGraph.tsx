@@ -2,9 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Node, Link, ForceGraphProps, SimulationState } from '@/app/types/force-graph';
 
 const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: ForceGraphProps) => {
-  console.log('Rendering ForceGraph...');
-  console.log('Items:', items);
-  console.log('Comparison stats:', comparisonStats);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<Node | null>(null);
@@ -43,7 +40,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
     const mean = allValues.reduce((a, b) => a + b, 0) / allValues.length;
     const stdDev = Math.sqrt(
       allValues.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / allValues.length
-    );
+    ) || 1; // Use 1 as fallback when stdDev is 0
 
     // Second pass: only include links that are statistically significant (z-score > 1)
     items.forEach((item1) => {
@@ -54,7 +51,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
           if (stats && stats.yes > stats.no) {
             const value = stats.yes - stats.no;
             const zScore = (value - mean) / stdDev;
-            console.log(value, zScore);
             if (zScore > -2) {
               links.push({
                 source: item1,
@@ -202,10 +198,10 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
     const baseWidth = Math.max(1, Math.min(6, 3 + zScore));
 
     // Adjust width on hover
-    if (!hoveredNode) return baseWidth;
-    return (link.source === hoveredNode || link.target === hoveredNode)
+    if (!hoveredNode) return baseWidth || 1;
+    return ((link.source === hoveredNode || link.target === hoveredNode)
       ? baseWidth + 0.5
-      : baseWidth - 0.5;
+      : baseWidth - 0.5) || 1;
   };
 
   const getNodeOpacity = (node: Node) => {
