@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Node, Link, ForceGraphProps, SimulationState } from '@/app/types/force-graph';
 
 const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: ForceGraphProps) => {
+  console.log('Rendering ForceGraph...');
+  console.log('Items:', items);
+  console.log('Comparison stats:', comparisonStats);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<Node | null>(null);

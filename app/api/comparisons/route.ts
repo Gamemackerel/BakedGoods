@@ -6,6 +6,7 @@ export async function GET() {
   try {
     console.log('Fetching comparisons...');
     const comparisons = await prisma.comparison.groupedComparisons();
+    console.log('Fetched comparisons:', comparisons);
     return NextResponse.json(comparisons || {}); // Ensure we always return an object
   } catch (error) {
     if (error instanceof Error) {
