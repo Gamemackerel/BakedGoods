@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ForceGraph from './ForceGraph';
+import type { ComparisonQuestionsProps, ComparisonAnswers, StatsMap } from '@/types/BakedGoodsGameTypes';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -13,7 +14,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const ComparisonQuestions = ({
+const ComparisonQuestions: React.FC<ComparisonQuestionsProps> = ({
   item1,
   item2,
   onAnswer,
@@ -27,7 +28,7 @@ const ComparisonQuestions = ({
     setAnswers({ forward: null, reverse: null });
   }, [item1, item2]);
 
-  const handleAnswer = (direction, answer) => {
+  const handleAnswer = (direction: 'forward' | 'reverse', answer: boolean) => {
     const newAnswers = { ...answers, [direction]: answer };
     setAnswers(newAnswers);
 
@@ -133,7 +134,7 @@ const BakedGoodsGame = () => {
   const [items, setItems] = useState({ item1: '', item2: '' });
   const [showResults, setShowResults] = useState(false);
   const [showStats, setShowStats] = useState(false);
-  const [comparisonStats, setComparisonStats] = useState({});
+  const [comparisonStats, setComparisonStats] = useState<StatsMap>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -168,7 +169,7 @@ const BakedGoodsGame = () => {
     getRandomPair();
   }, []);
 
-  const handleAnswers = async ({ forward, reverse }) => {
+  const handleAnswers = async ({ forward, reverse }: ComparisonAnswers) => {
     setIsSubmitting(true);
     setError('');
 
@@ -212,7 +213,7 @@ const BakedGoodsGame = () => {
 
   const getCurrentStats = () => ({
     forward: comparisonStats[`${items.item1}-${items.item2}`] || { yes: 0, no: 0 },
-    reverse: comparisonStats[`${items.item2}-${items.item1}`] || { yes: 0, no: 0 },
+    reverse: comparisonStats[`${items.item2}-${items.item1}`] || { yes: 0, no: 0 }
   });
 
   if (isLoading) {
