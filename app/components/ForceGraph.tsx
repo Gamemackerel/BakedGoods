@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { Node, Link, ForceGraphProps, SimulationState } from '@/types/ForceGraphTypes';
+import type { Node, Link, ForceGraphProps, SimulationState } from '@/app/types/force-graph';
 
 const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: ForceGraphProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -126,6 +126,9 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
       sim.links.forEach(link => {
         const source = sim.nodes.find(n => n.id === link.source);
         const target = sim.nodes.find(n => n.id === link.target);
+
+        if (!source || !target) return;
+
         const dx = target.x - source.x;
         const dy = target.y - source.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -147,7 +150,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (draggedNode) {
+      if (draggedNode && svgRef.current && simulationRef.current) {
         const svgRect = svgRef.current.getBoundingClientRect();
         const x = e.clientX - svgRect.left;
         const y = e.clientY - svgRect.top;

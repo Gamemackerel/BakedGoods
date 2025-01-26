@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ForceGraph from './ForceGraph';
-import type { ComparisonQuestionsProps, ComparisonAnswers, StatsMap } from '@/types/BakedGoodsGameTypes';
+import type { ComparisonQuestionsProps, ComparisonAnswers, StatsMap } from '@/app/types/baked-goods';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -33,7 +33,12 @@ const ComparisonQuestions: React.FC<ComparisonQuestionsProps> = ({
     setAnswers(newAnswers);
 
     if (newAnswers.forward !== null && newAnswers.reverse !== null) {
-      onAnswer(newAnswers);
+      onAnswer(
+        {
+          forward: newAnswers.forward,
+          reverse: newAnswers.reverse
+        }
+      );
     }
   };
 

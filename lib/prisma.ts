@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 declare global {
-  let prisma: ExtendedPrismaClient | undefined;
+  var prisma: ExtendedPrismaClient | undefined;
 }
 
 type ExtendedPrismaClient = PrismaClient & {
@@ -51,12 +51,15 @@ const prismaClientSingleton = () => {
         },
       },
     },
-  });
+  }) ;
 
-  return prisma as ExtendedPrismaClient;
+  return prisma as unknown as ExtendedPrismaClient;
 };
 
 const prisma = globalThis.prisma ?? prismaClientSingleton();
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prisma = prisma;
+}
 
 if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
 
