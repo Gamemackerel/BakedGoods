@@ -244,7 +244,7 @@ const BakedGoodsGame = () => {
 
             <p className="text-gray-600">
               This graph shows hierarchical relationships between baked goods based on user answers.
-              Arrows point from parent categories to their subtypes.
+              Arrows point from the subtype to the supertype.
             </p>
 
             <ForceGraph
