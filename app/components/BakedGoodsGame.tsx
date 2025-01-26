@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ForceGraph from './ForceGraph';
+import { Tiny5 } from 'next/font/google';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -263,7 +264,7 @@ const BakedGoodsGame = () => {
         <div className="space-y-6">
           <div className="text-center">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Baked Goods Comparison</h2>
+              <h2 className="text-2xl font-bold">Breaducator</h2>
               <Button
                 onClick={() => setShowStats(true)}
                 variant="outline"
@@ -271,6 +272,8 @@ const BakedGoodsGame = () => {
                 View Stats Graph
               </Button>
             </div>
+            <p className="text-sm">Discovering the true taxonomy of baked goods through collective wisdom.</p>
+            <br />
 
             {error && (
               <Alert variant="destructive" className="mb-4">
