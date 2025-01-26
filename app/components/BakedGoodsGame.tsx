@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ForceGraph from './ForceGraph';
-import { Tiny5 } from 'next/font/google';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
