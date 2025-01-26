@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+
+
 const ForceGraph = ({ comparisonStats, items }) => {
   const svgRef = useRef(null);
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -9,6 +11,9 @@ const ForceGraph = ({ comparisonStats, items }) => {
   const animationRef = useRef(null);
   const simulationRef = useRef(null);
 
+  const basicStrokeColor = '#6b7280';
+  const fadedStrokeColor = '#9CA3AF';
+
   useEffect(() => {
     const width = 600;
     const height = 500;
@@ -17,18 +22,44 @@ const ForceGraph = ({ comparisonStats, items }) => {
     // Process data
     const nodes = items.map(item => ({ id: item, radius: nodeRadius, x: width/2, y: height/2 }));
     const links = [];
+    const allValues = [];
 
+    // First pass: collect all values for statistical analysis
     items.forEach((item1) => {
       items.forEach((item2) => {
         if (item1 !== item2) {
           const key = `${item1}-${item2}`;
           const stats = comparisonStats[key];
           if (stats && stats.yes > stats.no) {
-            links.push({
-              source: item1,
-              target: item2,
-              value: stats.yes - stats.no
-            });
+            allValues.push(stats.yes - stats.no);
+          }
+        }
+      });
+    });
+
+    // Calculate mean and standard deviation
+    const mean = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+    const stdDev = Math.sqrt(
+      allValues.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / allValues.length
+    );
+
+    // Second pass: only include links that are statistically significant (z-score > 1)
+    items.forEach((item1) => {
+      items.forEach((item2) => {
+        if (item1 !== item2) {
+          const key = `${item1}-${item2}`;
+          const stats = comparisonStats[key];
+          if (stats && stats.yes > stats.no) {
+            const value = stats.yes - stats.no;
+            const zScore = (value - mean) / stdDev;
+            console.log(value, zScore);
+            if (zScore > -2) {
+              links.push({
+                source: item1,
+                target: item2,
+                value: value
+              });
+            }
           }
         }
       });
@@ -149,8 +180,8 @@ const ForceGraph = ({ comparisonStats, items }) => {
   }, [draggedNode, nodes]);
 
   const getStrokeColor = (link) => {
-    if (!hoveredNode) return '#666';
-    return (link.source === hoveredNode || link.target === hoveredNode) ? '#000' : '#ddd';
+    if (!hoveredNode) return basicStrokeColor;
+    return (link.source === hoveredNode || link.target === hoveredNode) ? basicStrokeColor : fadedStrokeColor;
   };
 
   const getStrokeWidth = (link) => {
@@ -193,7 +224,7 @@ const ForceGraph = ({ comparisonStats, items }) => {
           orient="auto-start-reverse"
           className="transition-opacity duration-200"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={hoveredNode ? '#ddd' : '#666'} />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={hoveredNode ? fadedStrokeColor : basicStrokeColor} />
         </marker>
         <marker
           id="arrowhead-active"
@@ -204,7 +235,7 @@ const ForceGraph = ({ comparisonStats, items }) => {
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#000"/>
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#666"/>
         </marker>
       </defs>
 
@@ -267,9 +298,10 @@ const ForceGraph = ({ comparisonStats, items }) => {
                   y={controlY}
                   dy={curveDirection * -5}
                   textAnchor="middle"
-                  fontSize="10"
+                  fontSize="11"
                   fill="#3b82f6"  // Tailwind blue-500
                   className="select-none pointer-events-none"
+                  fontWeight="bold"
                 >
                   {link.value}
                 </text>
@@ -296,7 +328,7 @@ const ForceGraph = ({ comparisonStats, items }) => {
             <circle
               r="30"
               fill="white"
-              stroke={hoveredNode === node.id ? '#000' : '#666'}
+              stroke={hoveredNode === node.id ? '#000' : basicStrokeColor}
               strokeWidth={hoveredNode === node.id ? 3 : 1}
               className="transition-all duration-200"
             />
