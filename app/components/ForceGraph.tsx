@@ -1,15 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { Node, Link, ForceGraphProps, SimulationState } from '@/types/ForceGraphTypes';
 
-
-
-const ForceGraph = ({ comparisonStats, items }) => {
-  const svgRef = useRef(null);
-  const [hoveredNode, setHoveredNode] = useState(null);
-  const [draggedNode, setDraggedNode] = useState(null);
-  const [nodes, setNodes] = useState([]);
-  const [links, setLinks] = useState([]);
-  const animationRef = useRef(null);
-  const simulationRef = useRef(null);
+const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: ForceGraphProps) => {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [draggedNode, setDraggedNode] = useState<Node | null>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [links, setLinks] = useState<Link[]>([]);
+  const animationRef = useRef<number | null>(null);
+  const simulationRef = useRef<SimulationState | null>(null);
 
   const basicStrokeColor = '#6b7280';
   const fadedStrokeColor = '#9CA3AF';
@@ -21,8 +20,8 @@ const ForceGraph = ({ comparisonStats, items }) => {
 
     // Process data
     const nodes = items.map(item => ({ id: item, radius: nodeRadius, x: width/2, y: height/2 }));
-    const links = [];
-    const allValues = [];
+    const links: Link[] = [];
+    const allValues: number[] = [];
 
     // First pass: collect all values for statistical analysis
     items.forEach((item1) => {
@@ -147,7 +146,7 @@ const ForceGraph = ({ comparisonStats, items }) => {
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (draggedNode) {
         const svgRect = svgRef.current.getBoundingClientRect();
         const x = e.clientX - svgRect.left;
@@ -179,12 +178,12 @@ const ForceGraph = ({ comparisonStats, items }) => {
     };
   }, [draggedNode, nodes]);
 
-  const getStrokeColor = (link) => {
+  const getStrokeColor = (link: Link) => {
     if (!hoveredNode) return basicStrokeColor;
     return (link.source === hoveredNode || link.target === hoveredNode) ? basicStrokeColor : fadedStrokeColor;
   };
 
-  const getStrokeWidth = (link) => {
+  const getStrokeWidth = (link: Link) => {
     // Calculate z-score for this link's value compared to all links
     const values = links.map(l => l.value);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -203,7 +202,7 @@ const ForceGraph = ({ comparisonStats, items }) => {
       : baseWidth - 0.5;
   };
 
-  const getNodeOpacity = (node) => {
+  const getNodeOpacity = (node: Node) => {
     if (!hoveredNode) return 1;
     return node.id === hoveredNode || links.some(l =>
       (l.source === hoveredNode && l.target === node.id) ||
