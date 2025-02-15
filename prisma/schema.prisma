@@ -19,7 +19,7 @@ model Comparison {
   item2     String
   response  Boolean  // true for "yes", false for "no"
   timestamp DateTime @default(now())
-  fingerprint String
+  userId    String   @default("legacy_user")
 
   @@index([item1, item2])
 }

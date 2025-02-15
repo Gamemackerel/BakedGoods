@@ -2,18 +2,29 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log('Fetching comparisons...');
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    // Get all comparisons for stats
     const comparisons = await prisma.comparison.groupedComparisons();
-    console.log('Fetched comparisons:', comparisons);
-    return NextResponse.json(comparisons || {}); // Ensure we always return an object
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error creating comparison:', error.stack);
-    } else {
-      console.error('Error creating comparison:', error);
+
+    // If userId provided, get user's previous votes
+    let userVotes: {item1: string, item2: string}[] = [];
+    if (userId) {
+      userVotes = await prisma.comparison.findMany({
+        where: { userId },
+        select: { item1: true, item2: true }
+      });
     }
+
+    return NextResponse.json({
+      comparisons: comparisons || {},
+      userVotes
+    });
+  } catch (error) {
+    console.error('Error fetching comparisons:', error);
     return NextResponse.json({
       error: 'Error fetching comparisons',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -21,14 +32,11 @@ export async function GET() {
   }
 }
 
-// Simpler version without zod
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('Received comparison:', body);
 
-    // Basic validation
-    if (!body.item1 || !body.item2 || body.response === undefined) {
+    if (!body.item1 || !body.item2 || body.response === undefined || !body.userId) {
       throw new Error('Missing required fields');
     }
 
@@ -39,7 +47,7 @@ export async function POST(request: Request) {
         item2: body.item2,
         response: body.response === true || body.response === 'yes',
         timestamp: new Date(),
-        fingerprint: Date.now().toString(36) + Math.random().toString(36).substring(2)
+        userId: body.userId
       },
     });
 
@@ -53,11 +61,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error creating comparison:', error.stack);
-    } else {
-      console.error('Error creating comparison:', error);
-    }
+    console.error('Error creating comparison:', error);
     return NextResponse.json({
       success: false,
       error: 'Error creating comparison',

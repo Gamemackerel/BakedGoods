@@ -7,6 +7,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ForceGraph from './ForceGraph';
 import type { ComparisonQuestionsProps, ComparisonAnswers, StatsMap } from '@/app/types/baked-goods';
+import { getUserId } from '@/lib/cookie-utils';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -143,24 +144,52 @@ const BakedGoodsGame = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    // Get or create user ID from cookie
+    setUserId(getUserId());
+  }, []);
 
   const getRandomPair = () => {
+    let attempts = 0;
     let first, second;
+
     do {
       first = bakedGoods[Math.floor(Math.random() * bakedGoods.length)];
       second = bakedGoods[Math.floor(Math.random() * bakedGoods.length)];
-    } while (first === second);
+      attempts++;
+
+      if (attempts > 100) {
+        setError("You've answered all available comparisons!");
+        return false;
+      }
+    } while (
+      first === second ||
+      userVotes.has(`${first}-${second}`) ||
+      userVotes.has(`${second}-${first}`)
+    );
 
     setItems({ item1: first, item2: second });
     setShowResults(false);
+    return true;
   };
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/comparisons');
+      const response = await fetch(`/api/comparisons?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch comparison data');
       const data = await response.json();
-      setComparisonStats(data);
+
+      setComparisonStats(data.comparisons);
+
+      const votes = new Set<string>();
+      data.userVotes.forEach((vote: {item1: string, item2: string}) => {
+        votes.add(`${vote.item1}-${vote.item2}`);
+      });
+      setUserVotes(votes);
+
     } catch (err) {
       setError('Failed to load comparison data. Please try again later.');
       console.error('Error fetching stats:', err);
@@ -170,16 +199,19 @@ const BakedGoodsGame = () => {
   };
 
   useEffect(() => {
-    fetchStats();
-    getRandomPair();
-  }, []);
+    if (userId) {
+      fetchStats();
+      getRandomPair();
+    }
+  }, [userId]);
 
   const handleAnswers = async ({ forward, reverse }: ComparisonAnswers) => {
+    if (!userId) return;
+
     setIsSubmitting(true);
     setError('');
 
     try {
-      // Submit both comparisons
       const responses = await Promise.all([
         fetch('/api/comparisons', {
           method: 'POST',
@@ -188,6 +220,7 @@ const BakedGoodsGame = () => {
             item1: items.item1,
             item2: items.item2,
             response: forward,
+            userId
           }),
         }),
         fetch('/api/comparisons', {
@@ -197,6 +230,7 @@ const BakedGoodsGame = () => {
             item1: items.item2,
             item2: items.item1,
             response: reverse,
+            userId
           }),
         }),
       ]);
@@ -205,6 +239,10 @@ const BakedGoodsGame = () => {
         throw new Error('Failed to submit one or more answers');
       }
 
+      userVotes.add(`${items.item1}-${items.item2}`);
+      userVotes.add(`${items.item2}-${items.item1}`);
+      setUserVotes(new Set(userVotes));
+
       await fetchStats();
       setShowResults(true);
     } catch (err) {
@@ -212,7 +250,6 @@ const BakedGoodsGame = () => {
       console.error('Error submitting answers:', err);
     } finally {
       setIsSubmitting(false);
-
     }
   };
 
