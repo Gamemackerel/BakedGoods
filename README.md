@@ -28,6 +28,11 @@ Currently, I'm generating and running migrations with the following command afte
 
 docker compose exec frontend npx prisma migrate dev --name init
 
+The compose service should succeed in performing the migrating automatically on next startup
+
+Then to the remote DB:
+DATABASE_URL="mydburl" npx prisma migrate deploy
+
 
 ## Deploy on Vercel
 
