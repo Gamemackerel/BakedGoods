@@ -32,11 +32,7 @@ Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 ## TODO
-
 * Add a short dynamically generated analysis to the stats view based on the data
-* Improve styling of, in particular, button colors such that everything is consistent and nice looking.
-* Improve button greying out on comparison selection, to show better feedback that its "completed"
-* Add loading spinner when waiting on comparison submission to show feedback to user
 * Refactor the project such that arbitrary comparison survey pages can be forked out easily
     * Other comparison sites soupsandwhichsalad, who would win MMA/football/celebrity fights
 * Add multiple types of entities, which inform what is offered for comparisons (supers will never be matched with other supers, etc)

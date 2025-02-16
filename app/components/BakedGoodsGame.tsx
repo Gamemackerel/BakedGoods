@@ -48,31 +48,31 @@ const ComparisonQuestions: React.FC<ComparisonQuestionsProps> = ({
     <div className="space-y-8">
       <div className="grid md:grid-cols-2 gap-8">
         {/* Forward question */}
-        <div className="space-y-4 p-6 border rounded-lg">
+        <div className={"space-y-4 p-6 border rounded-lg" + (answers.forward !== null ? " border-green-200 bg-green-50" : "")}>
           <p className="text-lg text-center">
-            Is a <span className="font-bold text-blue-600">{item1}</span> a type of{' '}
-            <span className="font-bold text-green-600">{item2}</span>?
+            Is a <span className="font-bold">{item1}</span> a type of{' '}
+            <span className="font-bold">{item2}</span>?
           </p>
 
           <div className="flex justify-center gap-4">
             <Button
               onClick={() => handleAnswer('forward', true)}
               disabled={answers.forward !== null || isSubmitting}
-              className="bg-green-500 hover:bg-green-600"
+              variant="outline"
             >
               Yes
             </Button>
             <Button
               onClick={() => handleAnswer('forward', false)}
               disabled={answers.forward !== null || isSubmitting}
-              className="bg-red-500 hover:bg-red-600"
+              variant="outline"
             >
               No
             </Button>
           </div>
 
           {showResults && (
-            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+            <div className="mt-4 p-4 bg-white rounded-lg">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <p className="font-medium">Yes</p>
@@ -88,31 +88,31 @@ const ComparisonQuestions: React.FC<ComparisonQuestionsProps> = ({
         </div>
 
         {/* Reverse question */}
-        <div className="space-y-4 p-6 border rounded-lg">
+        <div className={"space-y-4 p-6 border rounded-lg" + (answers.reverse !== null ? " border-green-200 bg-green-50" : "")}>
           <p className="text-lg text-center">
-            Is a <span className="font-bold text-green-600">{item2}</span> a type of{' '}
-            <span className="font-bold text-blue-600">{item1}</span>?
+            Is a <span className="font-bold">{item2}</span> a type of{' '}
+            <span className="font-bold">{item1}</span>?
           </p>
 
           <div className="flex justify-center gap-4">
             <Button
               onClick={() => handleAnswer('reverse', true)}
               disabled={answers.reverse !== null || isSubmitting}
-              className="bg-green-500 hover:bg-green-600"
+              variant="outline"
             >
               Yes
             </Button>
             <Button
               onClick={() => handleAnswer('reverse', false)}
               disabled={answers.reverse !== null || isSubmitting}
-              className="bg-red-500 hover:bg-red-600"
+              variant="outline"
             >
               No
             </Button>
           </div>
 
           {showResults && (
-            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+            <div className="mt-4 p-4 bg-white rounded-lg">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
                   <p className="font-medium">Yes</p>
@@ -296,11 +296,13 @@ const BakedGoodsGame = () => {
               isSubmitting={isSubmitting}
             />
 
+            {isSubmitting && <LoadingSpinner />}
             {showResults && (
               <div className="text-center mt-6">
                 <Button
                   onClick={getRandomPair}
-                  className="mt-4 bg-blue-500 hover:bg-blue-600"
+                  className="mt-4 w-full"
+                  variant="outline"
                 >
                   Next Pair
                 </Button>
