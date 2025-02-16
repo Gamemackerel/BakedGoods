@@ -3,13 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import ForceGraph from './ForceGraph';
 import type { ComparisonQuestionsProps, ComparisonAnswers, StatsMap } from '@/app/types/baked-goods';
 import { getUserId } from '@/lib/cookie-utils';
-import { useRouter } from 'next/router';
-import { usePathname } from 'next/navigation';
+import { baseEntitySet } from '@/lib/entities';
+
 import Link from 'next/link';
 
 const LoadingSpinner = () => (
@@ -134,14 +132,7 @@ const ComparisonQuestions: React.FC<ComparisonQuestionsProps> = ({
 };
 
 const BakedGoodsGame = () => {
-  const pathname = usePathname();
-  const showStats = pathname === '/stats';
 
-  const bakedGoods = [
-    'bread', 'cake', 'cookie', 'pastry', 'pie', 'roll', 'muffin',
-    'donut', 'brownie', 'biscuit', 'scone', 'cracker', 'tortilla',
-    'crepe', 'pancake', 'waffle', 'pita'
-  ];
 
   const [items, setItems] = useState({ item1: '', item2: '' });
   const [showResults, setShowResults] = useState(false);
@@ -162,8 +153,8 @@ const BakedGoodsGame = () => {
     let first, second;
 
     do {
-      first = bakedGoods[Math.floor(Math.random() * bakedGoods.length)];
-      second = bakedGoods[Math.floor(Math.random() * bakedGoods.length)];
+      first = baseEntitySet[Math.floor(Math.random() * baseEntitySet.length)];
+      second = baseEntitySet[Math.floor(Math.random() * baseEntitySet.length)];
       attempts++;
 
       if (attempts > 100) {
@@ -270,17 +261,6 @@ const BakedGoodsGame = () => {
           <LoadingSpinner />
         </CardContent>
       </Card>
-    );
-  }
-
-  if (showStats) {
-    return (
-      <div className="w-full max-w-screen-xl mx-auto">
-        <ForceGraph
-          comparisonStats={comparisonStats}
-          items={bakedGoods}
-        />
-      </div>
     );
   }
 
