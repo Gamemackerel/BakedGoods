@@ -14,7 +14,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
   const simulationRef = useRef<SimulationState | null>(null);
 
   const basicStrokeColor = '#6b7280';
-  const fadedStrokeColor = '#9CA3AF';
+  const fadedStrokeColor = '#E5E7EB';
 
   const width = window.innerWidth;
   const height = Math.max(500, window.innerHeight - 100);
@@ -158,35 +158,61 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
         const svgRect = svgRef.current.getBoundingClientRect();
         const x = e.clientX - svgRect.left;
         const y = e.clientY - svgRect.top;
+        updateNodePosition(draggedNode, simulationRef.current, x, y);
+      }
+    };
 
-        const updatedNodes = nodes.map(node =>
-          node.id === draggedNode.id
-            ? {
-                ...node,
-                x: Math.max(node.radius, Math.min(width - node.radius, x)),
-                y: Math.max(node.radius, Math.min(height - node.radius, y))
-              }
-            : node
-        );
-
-        setNodes(updatedNodes);
-        simulationRef.current.nodes = updatedNodes;
+    const handleTouchMove = (e: TouchEvent) => {
+      if (draggedNode && svgRef.current && simulationRef.current) {
+        e.preventDefault();
+        const svgRect = svgRef.current.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = touch.clientX - svgRect.left;
+        const y = touch.clientY - svgRect.top;
+        updateNodePosition(draggedNode, simulationRef.current, x, y);
       }
     };
 
     const handleMouseUp = () => {
       if (draggedNode) {
         setDraggedNode(null);
+        setHoveredNode(null);
         startAnimation();
       }
     };
 
+    const handleTouchEnd = handleMouseUp;
+
+    const updateNodePosition = (
+      currentNode: Node,
+      simulation: SimulationState,
+      x: number,
+      y: number
+    ) => {
+      const updatedNodes = nodes.map(node =>
+        node.id === currentNode.id
+          ? {
+              ...node,
+              x: Math.max(node.radius, Math.min(width - node.radius, x)),
+              y: Math.max(node.radius, Math.min(height - node.radius, y))
+            }
+          : node
+      );
+
+      setNodes(updatedNodes);
+      simulation.nodes = updatedNodes;
+    };
+
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [draggedNode, nodes]);
 
@@ -219,7 +245,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
     return node.id === hoveredNode || links.some(l =>
       (l.source === hoveredNode && l.target === node.id) ||
       (l.target === hoveredNode && l.source === node.id)
-    ) ? 1 : 0.3;
+    ) ? 1 : 0.15;
   };
 
   return (
@@ -350,13 +376,19 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
                 key={node.id}
                 transform={`translate(${node.x || 0},${node.y || 0})`}
                 opacity={getNodeOpacity(node)}
-                onMouseEnter={() => setHoveredNode(node.id)}
-                onMouseLeave={() => setHoveredNode(null)}
+                onMouseEnter={() => !draggedNode && setHoveredNode(node.id)}
+                onMouseLeave={() => !draggedNode && setHoveredNode(null)}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setDraggedNode(node);
+                  setHoveredNode(node.id);
                 }}
-                className="cursor-grab active:cursor-grabbing"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  setDraggedNode(node);
+                  setHoveredNode(node.id);
+                }}
+                className="cursor-grab active:cursor-grabbing touch-none"
               >
                 <circle
                   r="30"
