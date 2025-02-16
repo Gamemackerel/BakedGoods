@@ -14,6 +14,7 @@ export interface Node {
   export interface ForceGraphProps {
     comparisonStats: Record<string, { yes: number; no: number }>;
     items: string[];
+    onBack: () => void;
   }
 
   export interface SimulationState {

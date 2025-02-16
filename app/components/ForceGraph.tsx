@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Node, Link, ForceGraphProps, SimulationState } from '@/app/types/force-graph';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
 
-const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: ForceGraphProps) => {
+const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack }: ForceGraphProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<Node | null>(null);
@@ -13,9 +15,10 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
   const basicStrokeColor = '#6b7280';
   const fadedStrokeColor = '#9CA3AF';
 
+  const width = window.innerWidth;
+  const height = Math.max(500, window.innerHeight - 100);
+
   useEffect(() => {
-    const width = 600;
-    const height = 500;
     const nodeRadius = 30;
 
     // Process data
@@ -95,8 +98,8 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
       // Apply forces
       sim.nodes.forEach(node1 => {
         // Center force
-        const centerX = 300;
-        const centerY = 250;
+        const centerX = (width*3)/8;
+        const centerY = height/2;
         node1.x += (centerX - node1.x) * 0.005;
         node1.y += (centerY - node1.y) * 0.005;
 
@@ -117,8 +120,9 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
         });
 
         // Boundary forces
-        node1.x = Math.max(30, Math.min(570, node1.x));
-        node1.y = Math.max(30, Math.min(470, node1.y));
+        const padding = node1.radius + 10;
+        node1.x = Math.max(padding, Math.min(width - padding, node1.x));
+        node1.y = Math.max(padding, Math.min(height - padding, node1.y));
       });
 
       // Link forces
@@ -156,9 +160,14 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
 
         const updatedNodes = nodes.map(node =>
           node.id === draggedNode.id
-            ? { ...node, x: Math.max(30, Math.min(570, x)), y: Math.max(30, Math.min(470, y)) }
+            ? {
+                ...node,
+                x: Math.max(node.radius, Math.min(width - node.radius, x)),
+                y: Math.max(node.radius, Math.min(height - node.radius, y))
+              }
             : node
         );
+
         setNodes(updatedNodes);
         simulationRef.current.nodes = updatedNodes;
       }
@@ -213,139 +222,162 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
   };
 
   return (
-    <svg ref={svgRef} width="600" height="500" className="mx-auto">
-      <defs>
-        <marker
-          id="arrowhead"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-          className="transition-opacity duration-200"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={hoveredNode ? fadedStrokeColor : basicStrokeColor} />
-        </marker>
-        <marker
-          id="arrowhead-active"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#666"/>
-        </marker>
-      </defs>
-
-      <g className="links">
-        {links.map((link, i) => {
-          const source = nodes.find(n => n.id === link.source);
-          const target = nodes.find(n => n.id === link.target);
-          if (!source || !target) return null;
-
-          const dx = target.x - source.x;
-          const dy = target.y - source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy);
-
-          // Check if there's a reverse link and if this is the second link
-          const reverseLink = links.find(l =>
-            l.source === link.target && l.target === link.source
-          );
-          const isSecondLink = reverseLink && link.source > link.target;
-
-          // Curve in opposite directions for bidirectional links
-          const curve = reverseLink ? (isSecondLink ? -dr * 0.2 : dr * 0.2) : 0;
-
-          const sourceRadius = 30;
-          const targetRadius = 30;
-
-          const angle = Math.atan2(dy, dx);
-          const sourceX = source.x + sourceRadius * Math.cos(angle);
-          const sourceY = source.y + sourceRadius * Math.sin(angle);
-          const targetX = target.x - targetRadius * Math.cos(angle);
-          const targetY = target.y - targetRadius * Math.sin(angle);
-
-          // Create curved path with adjusted control points for opposite curves
-          const midX = (sourceX + targetX) / 2;
-          const midY = (sourceY + targetY) / 2;
-
-          // Determine curve direction based on node IDs to ensure consistency
-          const curveDirection = link.source < link.target ? 1 : -1;
-          const perpX = -dy / dr * curve * curveDirection;
-          const perpY = dx / dr * curve * curveDirection;
-          const controlX = midX + perpX;
-          const controlY = midY + perpY;
-
-          const path = reverseLink
-            ? `M ${sourceX} ${sourceY} Q ${controlX} ${controlY} ${targetX} ${targetY}`
-            : `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
-
-          return (
-            <g key={i} className="link">
-              <path
-                d={path}
-                fill="none"
-                stroke={getStrokeColor(link)}
-                strokeWidth={getStrokeWidth(link)}
-                markerEnd={`url(#${(hoveredNode && (link.source === hoveredNode || link.target === hoveredNode)) ? 'arrowhead-active' : 'arrowhead'})`}
-                opacity={0.6}
-              />
-              {hoveredNode && (link.source === hoveredNode || link.target === hoveredNode) && (
-                <text
-                  x={controlX}
-                  y={controlY}
-                  dy={curveDirection * -5}
-                  textAnchor="middle"
-                  fontSize="11"
-                  fill="#3b82f6"  // Tailwind blue-500
-                  className="select-none pointer-events-none"
-                  fontWeight="bold"
-                >
-                  {link.value}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </g>
-
-      <g className="nodes">
-        {nodes.map((node) => (
-          <g
-            key={node.id}
-            transform={`translate(${node.x || 0},${node.y || 0})`}
-            opacity={getNodeOpacity(node)}
-            onMouseEnter={() => setHoveredNode(node.id)}
-            onMouseLeave={() => setHoveredNode(null)}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setDraggedNode(node);
-            }}
-            className="cursor-grab active:cursor-grabbing"
+    <div className="w-full h-full flex flex-col">
+      <div className="p-4 border-b">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Button
+            onClick={onBack}
+            variant="ghost"
+            className="w-full sm:w-auto"
           >
-            <circle
-              r="30"
-              fill="white"
-              stroke={hoveredNode === node.id ? '#000' : basicStrokeColor}
-              strokeWidth={hoveredNode === node.id ? 3 : 1}
-              className="transition-all duration-200"
-            />
-            <text
-              textAnchor="middle"
-              dy=".3em"
-              fontSize="12"
-              fontWeight={hoveredNode === node.id ? 'bold' : 'normal'}
-              className="select-none pointer-events-none"
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Game
+          </Button>
+          <h2 className="text-2xl font-bold">Relationship Graph</h2>
+        </div>
+        <p className="mt-2 text-gray-600">
+          This graph shows hierarchical relationships between baked goods based on user answers.
+          Arrows point from the subtype to the supertype.
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+
+        <svg ref={svgRef} width={width} height={height} className="">
+          <defs>
+            <marker
+              id="arrowhead"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+              className="transition-opacity duration-200"
             >
-              {node.id}
-            </text>
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={hoveredNode ? fadedStrokeColor : basicStrokeColor} />
+            </marker>
+            <marker
+              id="arrowhead-active"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#666"/>
+            </marker>
+          </defs>
+
+          <g className="links">
+            {links.map((link, i) => {
+              const source = nodes.find(n => n.id === link.source);
+              const target = nodes.find(n => n.id === link.target);
+              if (!source || !target) return null;
+
+              const dx = target.x - source.x;
+              const dy = target.y - source.y;
+              const dr = Math.sqrt(dx * dx + dy * dy);
+
+              // Check if there's a reverse link and if this is the second link
+              const reverseLink = links.find(l =>
+                l.source === link.target && l.target === link.source
+              );
+              const isSecondLink = reverseLink && link.source > link.target;
+
+              // Curve in opposite directions for bidirectional links
+              const curve = reverseLink ? (isSecondLink ? -dr * 0.2 : dr * 0.2) : 0;
+
+              const sourceRadius = 30;
+              const targetRadius = 30;
+
+              const angle = Math.atan2(dy, dx);
+              const sourceX = source.x + sourceRadius * Math.cos(angle);
+              const sourceY = source.y + sourceRadius * Math.sin(angle);
+              const targetX = target.x - targetRadius * Math.cos(angle);
+              const targetY = target.y - targetRadius * Math.sin(angle);
+
+              // Create curved path with adjusted control points for opposite curves
+              const midX = (sourceX + targetX) / 2;
+              const midY = (sourceY + targetY) / 2;
+
+              // Determine curve direction based on node IDs to ensure consistency
+              const curveDirection = link.source < link.target ? 1 : -1;
+              const perpX = -dy / dr * curve * curveDirection;
+              const perpY = dx / dr * curve * curveDirection;
+              const controlX = midX + perpX;
+              const controlY = midY + perpY;
+
+              const path = reverseLink
+                ? `M ${sourceX} ${sourceY} Q ${controlX} ${controlY} ${targetX} ${targetY}`
+                : `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
+
+              return (
+                <g key={i} className="link">
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke={getStrokeColor(link)}
+                    strokeWidth={getStrokeWidth(link)}
+                    markerEnd={`url(#${(hoveredNode && (link.source === hoveredNode || link.target === hoveredNode)) ? 'arrowhead-active' : 'arrowhead'})`}
+                    opacity={0.6}
+                  />
+                  {hoveredNode && (link.source === hoveredNode || link.target === hoveredNode) && (
+                    <text
+                      x={controlX}
+                      y={controlY}
+                      dy={curveDirection * -5}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fill="#3b82f6"  // Tailwind blue-500
+                      className="select-none pointer-events-none"
+                      fontWeight="bold"
+                    >
+                      {link.value}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
           </g>
-        ))}
-      </g>
-    </svg>
+
+          <g className="nodes">
+            {nodes.map((node) => (
+              <g
+                key={node.id}
+                transform={`translate(${node.x || 0},${node.y || 0})`}
+                opacity={getNodeOpacity(node)}
+                onMouseEnter={() => setHoveredNode(node.id)}
+                onMouseLeave={() => setHoveredNode(null)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setDraggedNode(node);
+                }}
+                className="cursor-grab active:cursor-grabbing"
+              >
+                <circle
+                  r="30"
+                  fill="white"
+                  stroke={hoveredNode === node.id ? '#000' : basicStrokeColor}
+                  strokeWidth={hoveredNode === node.id ? 3 : 1}
+                  className="transition-all duration-200"
+                />
+                <text
+                  textAnchor="middle"
+                  dy=".3em"
+                  fontSize="12"
+                  fontWeight={hoveredNode === node.id ? 'bold' : 'normal'}
+                  className="select-none pointer-events-none"
+                >
+                  {node.id}
+                </text>
+              </g>
+            ))}
+          </g>
+        </svg>
+      </div>
+    </div>
   );
 };
 

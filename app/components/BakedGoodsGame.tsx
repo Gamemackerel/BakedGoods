@@ -260,7 +260,7 @@ const BakedGoodsGame = () => {
 
   if (isLoading) {
     return (
-      <Card className="w-full max-w-2xl mx-auto p-6">
+      <Card className="w-[calc(100%-1rem)] sm:w-full max-w-2xl mx-2 sm:mx-auto mt-6 sm:mt-24 p-6">
         <CardContent>
           <LoadingSpinner />
         </CardContent>
@@ -270,53 +270,32 @@ const BakedGoodsGame = () => {
 
   if (showStats) {
     return (
-      <Card className="w-full max-w-4xl mx-auto p-6">
-        <CardContent>
-          <div className="space-y-6">
-            <div className="flex items-center">
-              <Button
-                onClick={() => setShowStats(false)}
-                variant="ghost"
-                className="mr-4"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Back to Game
-              </Button>
-              <h2 className="text-2xl font-bold">Relationship Graph</h2>
-            </div>
-
-            <p className="text-gray-600">
-              This graph shows hierarchical relationships between baked goods based on user answers.
-              Arrows point from the subtype to the supertype.
-            </p>
-
-            <ForceGraph
-              comparisonStats={comparisonStats}
-              items={bakedGoods}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-screen-xl mx-auto">
+        <ForceGraph
+          comparisonStats={comparisonStats}
+          items={bakedGoods}
+          onBack={() => setShowStats(false)}
+        />
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto p-6">
+    <Card className="w-[calc(100%-1rem)] sm:w-full max-w-2xl mx-2 sm:mx-auto mt-6 sm:mt-24 p-6">
       <CardContent>
         <div className="space-y-6">
           <div className="text-center">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
               <h2 className="text-2xl font-bold">Breaducator</h2>
               <Button
                 onClick={() => setShowStats(true)}
                 variant="outline"
+                className="w-full sm:w-auto"
               >
                 View Stats Graph
               </Button>
             </div>
             <p className="text-sm">Discovering the true taxonomy of baked goods through collective wisdom.</p>
-            <br />
-
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertDescription>{error}</AlertDescription>
