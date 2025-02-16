@@ -62,6 +62,7 @@ const StatsView = () => {
         comparisonStats={comparisonStats}
         items={bakedGoods}
       />
+      {error && <p>{error}</p>}
     </div>
   );
 };
