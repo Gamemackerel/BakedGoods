@@ -7,8 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { ComparisonQuestionsProps, ComparisonAnswers, StatsMap } from '@/app/types/baked-goods';
 import { getUserId } from '@/lib/cookie-utils';
 import { baseEntitySet } from '@/lib/entities';
-
 import Link from 'next/link';
+import { selectComparison } from '@/lib/comparison-selector';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -149,25 +149,13 @@ const BakedGoodsGame = () => {
   }, []);
 
   const getRandomPair = () => {
-    let attempts = 0;
-    let first, second;
+    const result = selectComparison(baseEntitySet, comparisonStats, userVotes);
+    if (!result) {
+      setError("You've answered all available comparisons!");
+      return false;
+    }
 
-    do {
-      first = baseEntitySet[Math.floor(Math.random() * baseEntitySet.length)];
-      second = baseEntitySet[Math.floor(Math.random() * baseEntitySet.length)];
-      attempts++;
-
-      if (attempts > 100) {
-        setError("You've answered all available comparisons!");
-        return false;
-      }
-    } while (
-      first === second ||
-      userVotes.has(`${first}-${second}`) ||
-      userVotes.has(`${second}-${first}`)
-    );
-
-    setItems({ item1: first, item2: second });
+    setItems(result);
     setShowResults(false);
     return true;
   };
