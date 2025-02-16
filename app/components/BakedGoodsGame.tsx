@@ -8,6 +8,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import ForceGraph from './ForceGraph';
 import type { ComparisonQuestionsProps, ComparisonAnswers, StatsMap } from '@/app/types/baked-goods';
 import { getUserId } from '@/lib/cookie-utils';
+import { useRouter } from 'next/router';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -131,6 +134,9 @@ const ComparisonQuestions: React.FC<ComparisonQuestionsProps> = ({
 };
 
 const BakedGoodsGame = () => {
+  const pathname = usePathname();
+  const showStats = pathname === '/stats';
+
   const bakedGoods = [
     'bread', 'cake', 'cookie', 'pastry', 'pie', 'roll', 'muffin',
     'donut', 'brownie', 'biscuit', 'scone', 'cracker', 'tortilla',
@@ -139,7 +145,6 @@ const BakedGoodsGame = () => {
 
   const [items, setItems] = useState({ item1: '', item2: '' });
   const [showResults, setShowResults] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [comparisonStats, setComparisonStats] = useState<StatsMap>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -274,7 +279,6 @@ const BakedGoodsGame = () => {
         <ForceGraph
           comparisonStats={comparisonStats}
           items={bakedGoods}
-          onBack={() => setShowStats(false)}
         />
       </div>
     );
@@ -287,15 +291,16 @@ const BakedGoodsGame = () => {
           <div className="text-center">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
               <h2 className="text-2xl font-bold">Breaducator</h2>
-              <Button
-                onClick={() => setShowStats(true)}
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                View Stats Graph
-              </Button>
+              <Link href="/stats" className="w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                >
+                  View Stats Graph
+                </Button>
+              </Link>
             </div>
-            <p className="text-sm">Discovering the true taxonomy of baked goods through collective wisdom.</p>
+            <p className="text-sm mb-8">Discovering the true taxonomy of baked goods through collective wisdom.</p>
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertDescription>{error}</AlertDescription>

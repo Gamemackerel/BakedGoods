@@ -5,7 +5,7 @@ export interface Node {
     y: number;
   }
 
-  export interface Link {
+  export interface GraphLink {
     source: string;
     target: string;
     value: number;
@@ -14,10 +14,9 @@ export interface Node {
   export interface ForceGraphProps {
     comparisonStats: Record<string, { yes: number; no: number }>;
     items: string[];
-    onBack: () => void;
   }
 
   export interface SimulationState {
     nodes: Node[];
-    links: Link[];
+    links: GraphLink[];
   }

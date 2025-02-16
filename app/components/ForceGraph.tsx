@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { Node, Link, ForceGraphProps, SimulationState } from '@/app/types/force-graph';
+import type { Node, GraphLink, ForceGraphProps, SimulationState } from '@/app/types/force-graph';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
 
-const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack }: ForceGraphProps) => {
+const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: ForceGraphProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<Node | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
-  const [links, setLinks] = useState<Link[]>([]);
+  const [links, setGraphLinks] = useState<GraphLink[]>([]);
   const animationRef = useRef<number | null>(null);
   const simulationRef = useRef<SimulationState | null>(null);
 
@@ -23,7 +24,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack 
 
     // Process data
     const nodes = items.map(item => ({ id: item, radius: nodeRadius, x: width/2, y: height/2 }));
-    const links: Link[] = [];
+    const links: GraphLink[] = [];
     const allValues: number[] = [];
 
     // First pass: collect all values for statistical analysis
@@ -74,7 +75,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack 
     });
 
     setNodes(nodes);
-    setLinks(links);
+    setGraphLinks(links);
     simulationRef.current = { nodes, links };
 
     // Start animation
@@ -125,7 +126,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack 
         node1.y = Math.max(padding, Math.min(height - padding, node1.y));
       });
 
-      // Link forces
+      // GraphLink forces
       sim.links.forEach(link => {
         const source = sim.nodes.find(n => n.id === link.source);
         const target = sim.nodes.find(n => n.id === link.target);
@@ -189,12 +190,12 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack 
     };
   }, [draggedNode, nodes]);
 
-  const getStrokeColor = (link: Link) => {
+  const getStrokeColor = (link: GraphLink) => {
     if (!hoveredNode) return basicStrokeColor;
     return (link.source === hoveredNode || link.target === hoveredNode) ? basicStrokeColor : fadedStrokeColor;
   };
 
-  const getStrokeWidth = (link: Link) => {
+  const getStrokeWidth = (link: GraphLink) => {
     // Calculate z-score for this link's value compared to all links
     const values = links.map(l => l.value);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -225,14 +226,15 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack 
     <div className="w-full h-full flex flex-col">
       <div className="p-4 border-b">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <Button
-            onClick={onBack}
-            variant="ghost"
-            className="w-full sm:w-auto"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Game
-          </Button>
+          <Link href="/" className="w-full sm:w-auto">
+            <Button
+              variant="ghost"
+              className="w-full"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Game
+            </Button>
+          </Link>
           <h2 className="text-2xl font-bold">Relationship Graph</h2>
         </div>
         <p className="mt-2 text-gray-600">
@@ -281,13 +283,13 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack 
               const dr = Math.sqrt(dx * dx + dy * dy);
 
               // Check if there's a reverse link and if this is the second link
-              const reverseLink = links.find(l =>
+              const reverseGraphLink = links.find(l =>
                 l.source === link.target && l.target === link.source
               );
-              const isSecondLink = reverseLink && link.source > link.target;
+              const isSecondGraphLink = reverseGraphLink && link.source > link.target;
 
               // Curve in opposite directions for bidirectional links
-              const curve = reverseLink ? (isSecondLink ? -dr * 0.2 : dr * 0.2) : 0;
+              const curve = reverseGraphLink ? (isSecondGraphLink ? -dr * 0.2 : dr * 0.2) : 0;
 
               const sourceRadius = 30;
               const targetRadius = 30;
@@ -309,7 +311,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items, onBack 
               const controlX = midX + perpX;
               const controlY = midY + perpY;
 
-              const path = reverseLink
+              const path = reverseGraphLink
                 ? `M ${sourceX} ${sourceY} Q ${controlX} ${controlY} ${targetX} ${targetY}`
                 : `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
 
