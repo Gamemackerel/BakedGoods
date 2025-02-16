@@ -26,7 +26,7 @@ DATABASE_URL="mydbconnectionstring.aivencloud.com" npx prisma migrate deploy
 
 ## Deploy on Vercel
 
-This is ready to deploy on vercel for free using the github project, as long as you have a postgres database available! (aivencloud.com has free ones)
+This is ready to deploy on vercel for free using the github project, as long as you have a postgres database available! (aivencloud.com has free ones). Currently the project is deployed at [https://breaducator.vercel.app/](https://breaducator.vercel.app/) using vercel and aiven DB and serves as an
 
 Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 

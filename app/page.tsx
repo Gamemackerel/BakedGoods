@@ -1,4 +1,3 @@
-import { Link } from 'lucide-react'
 import BakedGoodsGame from './components/BakedGoodsGame'
 
 export default function Home() {
