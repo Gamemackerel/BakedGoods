@@ -38,6 +38,7 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
         const diffFrom50 = Math.abs(50 - yesPercent);
         if (diffFrom50 < smallestDiff || (diffFrom50 - smallestDiff < 5 && total > highestTotal)) {
           smallestDiff = diffFrom50;
+          highestTotal = total;
           closestTo50 = {
             pair: key.split('-'),
             stats: stats,
