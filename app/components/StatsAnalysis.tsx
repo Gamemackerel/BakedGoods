@@ -89,15 +89,13 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
     Object.entries(comparisonStats).forEach(([key, stats]) => {
       const total = stats.yes + stats.no;
       if (total >= 5) {
-        const ratio = stats.yes / total;
+        const ratio = Math.max(stats.yes / total); // Consider both yes and no majorities
         if (ratio > highestRatio) {
           highestRatio = ratio;
           clearCutRelation = {
             pair: key.split('-'),
             stats: stats,
-            percentage: stats.yes > stats.no ?
-              getPercentage(stats.yes, stats.no) :
-              getPercentage(stats.no, stats.yes)
+            percentage: getPercentage(stats.yes, stats.no)
           };
         }
       }
