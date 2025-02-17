@@ -54,11 +54,9 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
     const incoming: Record<string, number> = {};
     const outgoing: Record<string, number> = {};
 
-    debugger;
     // Process each relationship
     Object.entries(comparisonStats).forEach(([key, stats]) => {
       const [source, target] = key.split('-');
-      const total = stats.yes + stats.no;
 
       // Only count strong relationships (more yes than no)
       if (stats.yes > stats.no) {
@@ -73,11 +71,11 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
     const outgoingEntries = Object.entries(outgoing);
 
     const mostIncoming = incomingEntries.length > 0
-      ? _.maxBy(incomingEntries, ([_, count]) => count)
+      ? _.maxBy(incomingEntries, ([__, count]) => count)
       : undefined;
 
     const mostOutgoing = outgoingEntries.length > 0
-      ? _.maxBy(outgoingEntries, ([_, count]) => count)
+      ? _.maxBy(outgoingEntries, ([__, count]) => count)
       : undefined;
 
     return { mostIncoming, mostOutgoing };
@@ -109,11 +107,6 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
   };
 
   const { controversial, relationshipCounts, clearCut } = useMemo(() => {
-    const getPercentage = (yes: number, no: number): number => {
-      const total = yes + no;
-      return total > 0 ? Math.round((yes / total) * 100) : 0;
-    };
-
     const controversial = getMostControversial();
     const relationshipCounts = getRelationshipCounts();
     const clearCut = getMostClearCut();
