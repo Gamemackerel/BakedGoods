@@ -71,12 +71,12 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
     const outgoingEntries = Object.entries(outgoing);
 
     const mostIncoming = incomingEntries.length > 0
-      ? _.maxBy(incomingEntries, ([__, count]) => count)
-      : undefined;
+    ? _.maxBy(incomingEntries, entry => entry[1])
+    : undefined;
 
-    const mostOutgoing = outgoingEntries.length > 0
-      ? _.maxBy(outgoingEntries, ([__, count]) => count)
-      : undefined;
+  const mostOutgoing = outgoingEntries.length > 0
+    ? _.maxBy(outgoingEntries, entry => entry[1])
+    : undefined;
 
     return { mostIncoming, mostOutgoing };
   };
