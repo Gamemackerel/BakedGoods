@@ -53,7 +53,6 @@ export function selectComparison(
 ): { item1: string; item2: string } | null {
   // Generate all possible pairs and score them
   const candidates: ScoredComparison[] = [];
-  debugger;
   for (let i = 0; i < items.length; i++) {
     for (let j = 0; j < items.length; j++) {
       if (i === j) continue;
@@ -69,7 +68,6 @@ export function selectComparison(
       candidates.push({ item1, item2, score });
     }
   }
-  debugger;
   if (candidates.length === 0) return null;
 
   // Calculate cumulative weights for weighted random selection
@@ -91,7 +89,7 @@ export function selectComparison(
   }
 
   // Fallback to last candidate if we somehow didn't select one
-  // (shouldn't happen due to cumulative weights)
+  // due to numeric precision edge case
   return {
     item1: candidates[candidates.length - 1].item1,
     item2: candidates[candidates.length - 1].item2
