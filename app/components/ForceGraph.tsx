@@ -3,6 +3,7 @@ import type { Node, GraphLink, ForceGraphProps, SimulationState } from '@/app/ty
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
+import StatsAnalysis from './StatsAnalysis';
 
 const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: ForceGraphProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -411,6 +412,10 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
           </g>
         </svg>
       </div>
+      <footer className="text-center text-sm text-gray-500 mb-2">
+        <StatsAnalysis comparisonStats={comparisonStats} />
+        <a className='hover:underline' href='https://github.com/Gamemackerel/BakedGoods'>View on GitHub</a>
+      </footer>
     </div>
   );
 };
