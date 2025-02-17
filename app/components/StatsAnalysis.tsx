@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import _ from 'lodash';
 import type { StatsMap, ComparisonStats } from '@/app/types/baked-goods';
 
@@ -125,13 +125,30 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
 
   return (
     <Card className="w-full max-w-2xl mx-auto mb-8">
-      <CardHeader>
-        <CardTitle>Relationship Analysis</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 mt-5">
+        {mostIncoming && mostIncoming[1] > 0 && (
+          <div>
+            <h3 className="font-medium mb-1 underline">Most Generic Item</h3>
+            <p>
+              <span className="font-bold">{mostIncoming[0]}</span> has{' '}
+              {mostIncoming[1]} different subtypes
+            </p>
+          </div>
+        )}
+
+        {mostOutgoing && mostOutgoing[1] > 0 && (
+          <div>
+            <h3 className="font-medium mb-1 underline">Most Versatile Item</h3>
+            <p>
+              <span className="font-bold">{mostOutgoing[0]}</span> is classified as{' '}
+              {mostOutgoing[1]} different types
+            </p>
+          </div>
+        )}
+
         {controversial && (
           <div>
-            <h3 className="font-medium mb-1">Most Controversial Relationship</h3>
+            <h3 className="font-medium mb-1 underline">Most Controversial Relationship</h3>
             <p>
               Is a <span className="font-bold">{controversial.pair[0]}</span> a type of{' '}
               <span className="font-bold">{controversial.pair[1]}</span>?{' '}
@@ -142,29 +159,9 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
           </div>
         )}
 
-        {mostIncoming && mostIncoming[1] > 0 && (
-          <div>
-            <h3 className="font-medium mb-1">Most Generic Category</h3>
-            <p>
-              <span className="font-bold">{mostIncoming[0]}</span> has{' '}
-              {mostIncoming[1]} different subtypes
-            </p>
-          </div>
-        )}
-
-        {mostOutgoing && mostOutgoing[1] > 0 && (
-          <div>
-            <h3 className="font-medium mb-1">Most Versatile Item</h3>
-            <p>
-              <span className="font-bold">{mostOutgoing[0]}</span> is classified as{' '}
-              {mostOutgoing[1]} different types
-            </p>
-          </div>
-        )}
-
         {clearCut && (
           <div>
-            <h3 className="font-medium mb-1">Most Clear-cut Relationship</h3>
+            <h3 className="font-medium mb-1 underline">Most Clear-cut Relationship</h3>
             <p>
               <span className="font-bold">{clearCut.percentage}%</span> agree that a{' '}
               <span className="font-bold">{clearCut.pair[0]}</span> is a type of{' '}

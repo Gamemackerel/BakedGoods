@@ -264,7 +264,7 @@ const BakedGoodsGame = () => {
                   variant="outline"
                   className="w-full"
                 >
-                  View Stats Graph
+                  Analysis
                 </Button>
               </Link>
             </div>

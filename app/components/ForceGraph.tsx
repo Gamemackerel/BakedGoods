@@ -259,13 +259,13 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ comparisonStats, items }: Force
               className="w-full"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Game
+              Back to Survey
             </Button>
           </Link>
           <h2 className="text-2xl font-bold">Relationship Graph</h2>
         </div>
         <p className="mt-2 text-gray-600">
-          This graph shows hierarchical relationships between baked goods based on user answers.
+          This graph shows hierarchical relationships between baked goods based on all user answers.
           Arrows point from the subtype to the supertype.
         </p>
       </div>
