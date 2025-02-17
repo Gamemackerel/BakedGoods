@@ -30,13 +30,13 @@ function calculateScore(stats: ComparisonStats | undefined): number {
   const balanceScore = 1 - Math.abs(0.5 - yesRatio);
 
   // Boost score for comparisons with more yes votes
-  const yesBoost = yesRatio * 0.4;
+  const yesBoost = yesRatio;
 
   // Reduce score as total votes increase (to ensure coverage)
   const coverageScore = 1 / (1 + Math.log(total + 1));
 
   // Combine scores with weights
-  const baseScore = (balanceScore * 0.3) + (coverageScore * 0.3) + (yesBoost * 0.4);
+  const baseScore = (balanceScore * 0.2) + (coverageScore * 0.2) + (yesBoost * 0.6);
 
   // Square the score to increase spread between high and low interest comparisons
   return Math.pow(baseScore, 2);
