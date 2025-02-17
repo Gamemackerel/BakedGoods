@@ -29,13 +29,14 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
   const getMostControversial = (): ControversialRelation | null => {
     let closestTo50 = null;
     let smallestDiff = Infinity;
+    let highestTotal = 0;
 
     Object.entries(comparisonStats).forEach(([key, stats]) => {
       const total = stats.yes + stats.no;
-      if (total >= 10) {
+      if (total > 10) {
         const yesPercent = getPercentage(stats.yes, stats.no);
         const diffFrom50 = Math.abs(50 - yesPercent);
-        if (diffFrom50 < smallestDiff) {
+        if (diffFrom50 < smallestDiff || (diffFrom50 - smallestDiff < 5 && total > highestTotal)) {
           smallestDiff = diffFrom50;
           closestTo50 = {
             pair: key.split('-'),
@@ -84,20 +85,19 @@ const StatsAnalysis: React.FC<StatsAnalysisProps> = ({ comparisonStats }) => {
   // Find the most clear-cut relationship
   const getMostClearCut = (): ControversialRelation | null => {
     let highestRatio = 0;
+    let highestTotal = 0;
     let clearCutRelation = null;
-
     Object.entries(comparisonStats).forEach(([key, stats]) => {
       const total = stats.yes + stats.no;
-      if (total >= 5) {
-        const ratio = Math.max(stats.yes / total); // Consider both yes and no majorities
-        if (ratio > highestRatio) {
-          highestRatio = ratio;
-          clearCutRelation = {
-            pair: key.split('-'),
-            stats: stats,
-            percentage: getPercentage(stats.yes, stats.no)
-          };
-        }
+      const ratio = stats.yes / total;
+      if (ratio > highestRatio || (ratio === highestRatio && total > highestTotal)) {
+        highestTotal = total;
+        highestRatio = ratio;
+        clearCutRelation = {
+          pair: key.split('-'),
+          stats: stats,
+          percentage: getPercentage(stats.yes, stats.no)
+        };
       }
     });
 
