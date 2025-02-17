@@ -148,7 +148,7 @@ const BakedGoodsGame = () => {
     setUserId(getUserId());
   }, []);
 
-  const getRandomPair = () => {
+  const getRandomPair = (comparisonStats: StatsMap, userVotes: Set<string>) => {
     const result = selectComparison(baseEntitySet, comparisonStats, userVotes);
     if (!result) {
       setError("You've answered all available comparisons!");
@@ -173,7 +173,10 @@ const BakedGoodsGame = () => {
         votes.add(`${vote.item1}-${vote.item2}`);
       });
       setUserVotes(votes);
-
+      return {
+        comparisons: data.comparisons,
+        userVotes: votes
+      }
     } catch (err) {
       setError('Failed to load comparison data. Please try again later.');
       console.error('Error fetching stats:', err);
@@ -184,8 +187,11 @@ const BakedGoodsGame = () => {
 
   useEffect(() => {
     if (userId) {
-      fetchStats();
-      getRandomPair();
+      fetchStats().then((result) => {
+        if (result) {
+          getRandomPair(result.comparisons, result.userVotes);
+        }
+      });
     }
   }, [userId]);
 
@@ -288,7 +294,7 @@ const BakedGoodsGame = () => {
             {showResults && (
               <div className="text-center mt-6">
                 <Button
-                  onClick={getRandomPair}
+                  onClick={() => getRandomPair(comparisonStats, userVotes)}
                   className="mt-4 w-full"
                   variant="outline"
                 >
